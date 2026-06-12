@@ -153,10 +153,13 @@ router.post('/api/search', async (req, res) => {
     const aliSecondary   = buildAliQuery(secondaryQuery, productType);
 
     // Amazon و Supabase بالتوازي (مهلة Amazon: 25 ثانية — Rainforest بطيء أحياناً)
+    // محاولة ثالثة باستعلام قصير: الاستعلامات الطويلة جداً (7+ كلمات) كثيراً ما ترجع صفراً في amazon.sa
+    const shortQuery = buildAliQuery(primaryQuery, productType);
     const [amazonRaw, supabaseRaw] = await Promise.all([
       Promise.race([
         searchAmazon(primaryQuery, market, wantCheaper)
-          .then(r => r || searchAmazon(secondaryQuery, market, wantCheaper)),
+          .then(r => r || searchAmazon(secondaryQuery, market, wantCheaper))
+          .then(r => r || (shortQuery !== primaryQuery ? searchAmazon(shortQuery, market, wantCheaper) : null)),
         new Promise(resolve => setTimeout(() => resolve(null), 25000)),
       ]),
       searchSupabase(primaryQuery, productType, wantCheaper),

@@ -40,7 +40,17 @@ async function searchAmazon(query, market = 'SA', wantCheaper = false) {
     }
 
     const results = data.search_results || [];
-    if (!results.length) { console.log('[Amazon] لا نتائج من Rainforest لـ:', query); return null; }
+    if (!results.length) {
+      // Rainforest يضع الرفض (رصيد منتهي/مفتاح) في request_info وليس في error
+      const info = data.request_info;
+      if (info && info.success === false) {
+        console.error('[Amazon] ⛔ Rainforest رفض الطلب:', info.message || JSON.stringify(info).slice(0, 200));
+      } else {
+        console.log('[Amazon] لا نتائج من Rainforest لـ:', query);
+        console.log('[Amazon] raw:', JSON.stringify(data).slice(0, 300));
+      }
+      return null;
+    }
 
     const currencyMap = { SA: 'ر.س', AE: 'د.إ', EG: 'ج.م', US: '$', CA: 'C$' };
     const currency    = currencyMap[market] || 'ر.س';

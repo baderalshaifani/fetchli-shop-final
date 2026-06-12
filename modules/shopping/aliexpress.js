@@ -257,29 +257,29 @@ async function searchAliExpress(query, wantCheaper = false, market = 'SA', produ
 function filterAliResults(items, productType) {
   if (!productType || !items?.length) return items;
 
-  // كلمات يجب أن تظهر في اسم المنتج
+  // كلمات يجب أن تظهر في اسم المنتج (إنجليزي + عربي — النتائج ترجع بالعربي لأسواق الخليج)
   const TYPE_KEYWORDS = {
-    'ساعة':    ['watch', 'clock', 'timepiece', 'smartwatch', 'wrist'],
-    'حقيبة':   ['bag', 'handbag', 'purse', 'tote', 'backpack', 'clutch', 'wallet'],
-    'حذاء':    ['shoe', 'sneaker', 'boot', 'heel', 'sandal', 'loafer', 'slipper'],
-    'قميص':    ['shirt', 'blouse', 'top', 'tee', 't-shirt'],
-    'فستان':   ['dress', 'gown', 'skirt'],
-    'جاكيت':   ['jacket', 'coat', 'blazer', 'hoodie', 'sweater'],
-    'جوال':    ['phone', 'mobile', 'smartphone', 'iphone', 'samsung'],
-    'لابتوب':  ['laptop', 'notebook', 'computer'],
-    'سماعة':   ['headphone', 'earphone', 'earbuds', 'headset', 'airpods'],
-    'نظارة':   ['glasses', 'sunglasses', 'eyewear', 'spectacles'],
-    'خاتم':    ['ring', 'band'],
-    'عطر':     ['perfume', 'fragrance', 'cologne', 'eau de'],
+    'ساعة':    ['watch', 'clock', 'timepiece', 'smartwatch', 'wrist', 'ساعة', 'ساعه', 'ساعات'],
+    'حقيبة':   ['bag', 'handbag', 'purse', 'tote', 'backpack', 'clutch', 'wallet', 'حقيبة', 'حقيبه', 'شنطة', 'شنطه', 'حقائب', 'محفظة'],
+    'حذاء':    ['shoe', 'sneaker', 'boot', 'heel', 'sandal', 'loafer', 'slipper', 'حذاء', 'جزمة', 'جزمه', 'أحذية', 'احذية', 'صندل', 'كوتشي', 'كعب'],
+    'قميص':    ['shirt', 'blouse', 'top', 'tee', 't-shirt', 'قميص', 'بلوزة', 'بلوزه', 'تيشيرت', 'توب'],
+    'فستان':   ['dress', 'gown', 'skirt', 'فستان', 'فساتين', 'تنورة'],
+    'جاكيت':   ['jacket', 'coat', 'blazer', 'hoodie', 'sweater', 'جاكيت', 'معطف', 'سترة', 'هودي'],
+    'جوال':    ['phone', 'mobile', 'smartphone', 'iphone', 'samsung', 'هاتف', 'جوال', 'موبايل', 'ايفون', 'آيفون', 'سامسونج'],
+    'لابتوب':  ['laptop', 'notebook', 'computer', 'لابتوب', 'حاسوب', 'كمبيوتر'],
+    'سماعة':   ['headphone', 'earphone', 'earbuds', 'headset', 'airpods', 'سماعة', 'سماعه', 'سماعات', 'ايربودز'],
+    'نظارة':   ['glasses', 'sunglasses', 'eyewear', 'spectacles', 'نظارة', 'نظاره', 'نظارات'],
+    'خاتم':    ['ring', 'band', 'خاتم', 'خواتم'],
+    'عطر':     ['perfume', 'fragrance', 'cologne', 'eau de', 'عطر', 'عطور', 'برفيوم'],
   };
 
   // كلمات سوداء — لو موجودة في الاسم يُحذف المنتج حتى لو فيه كلمة النوع
   const TYPE_BLACKLIST = {
-    'ساعة':  ['strap', 'band', 'case', 'charger', 'screen protector', 'bracelet', 'bezel', 'watchband', 'watch strap', 'watch case', 'watch band', 'repair', 'tool kit', 'crown', 'watch box', 'watch stand'],
-    'حقيبة': ['strap', 'charm', 'keychain', 'organizer', 'insert', 'hanger'],
-    'حذاء':  ['lace', 'insole', 'sole', 'cleaner', 'brush', 'stretcher', 'rack', 'bag'],
-    'جوال':  ['case', 'cover', 'charger', 'cable', 'holder', 'stand', 'screen', 'protector', 'film'],
-    'سماعة': ['case', 'tip', 'cushion', 'pad', 'cable', 'adapter', 'hook'],
+    'ساعة':  ['strap', 'band', 'case', 'charger', 'screen protector', 'bracelet', 'bezel', 'watchband', 'watch strap', 'watch case', 'watch band', 'repair', 'tool kit', 'crown', 'watch box', 'watch stand', 'سوار', 'حزام', 'شاحن', 'حماية', 'علبة'],
+    'حقيبة': ['strap', 'charm', 'keychain', 'organizer', 'insert', 'hanger', 'حزام', 'ميدالية', 'منظم', 'علاقة'],
+    'حذاء':  ['lace', 'insole', 'sole', 'cleaner', 'brush', 'stretcher', 'rack', 'bag', 'رباط', 'نعل', 'فرشاة', 'منظف'],
+    'جوال':  ['case', 'cover', 'charger', 'cable', 'holder', 'stand', 'screen', 'protector', 'film', 'غطاء', 'جراب', 'كفر', 'شاحن', 'كيبل', 'كابل', 'حامل', 'لاصقة', 'حماية'],
+    'سماعة': ['case', 'tip', 'cushion', 'pad', 'cable', 'adapter', 'hook', 'علبة', 'غطاء', 'كيبل', 'وسادة'],
   };
 
   const keywords  = TYPE_KEYWORDS[productType];
@@ -295,7 +295,8 @@ function filterAliResults(items, productType) {
   });
 
   console.log(`[AliFilter] type="${productType}" before:${items.length} after:${filtered.length}`);
-  return filtered.length > 0 ? filtered : items;
+  // لا نعرض نتائج غير مطابقة أبداً — الفارغ أصدق من الخطأ
+  return filtered;
 }
 
 // ────────────────────────────────────
