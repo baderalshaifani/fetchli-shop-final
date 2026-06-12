@@ -100,6 +100,7 @@ async function smartmatchAliExpress(englishTitles, wantCheaper = false, market =
           format:           'json',
           session:          ACCESS_TOKEN || '',
           product_title:    title.slice(0, 100),
+          device_id:        'fetchli-web', // إجباري حسب رسالة خطأ الـ API (MissingParameter)
           tracking_id:      TRACKING,
           target_currency:  mkt.currency,
           target_language:  mkt.language,

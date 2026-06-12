@@ -152,12 +152,12 @@ router.post('/api/search', async (req, res) => {
     const aliPrimary     = buildAliQuery(primaryQuery, productType);
     const aliSecondary   = buildAliQuery(secondaryQuery, productType);
 
-    // Amazon و Supabase بالتوازي (مهلة Amazon: 8 ثوانٍ)
+    // Amazon و Supabase بالتوازي (مهلة Amazon: 25 ثانية — Rainforest بطيء أحياناً)
     const [amazonRaw, supabaseRaw] = await Promise.all([
       Promise.race([
         searchAmazon(primaryQuery, market, wantCheaper)
           .then(r => r || searchAmazon(secondaryQuery, market, wantCheaper)),
-        new Promise(resolve => setTimeout(() => resolve(null), 8000)),
+        new Promise(resolve => setTimeout(() => resolve(null), 25000)),
       ]),
       searchSupabase(primaryQuery, productType, wantCheaper),
     ]);
@@ -248,6 +248,10 @@ router.post('/api/smart-chat', async (req, res) => {
 - لا تسأل أكثر من 3 أسئلة إجمالاً قبل البحث
 - للسفر تحتاج: مدينة المغادرة + الوجهة + التاريخ التقريبي
 - للتسوق تحتاج: اسم/وصف المنتج (الميزانية اختيارية)
+- مهم جداً للتسوق: في context.product اكتب دائماً وصفاً كاملاً مستقلاً للمنتج المطلوب الآن.
+  إذا أشار المستخدم لطلب سابق ("نفس اللون"، "نفس الماركة"، "بس رجالي")، ادمج المعلومة من المحادثة:
+  مثال: سبق طلب "شنطة نسائية حمراء" ثم قال "اريد جزمة نفس اللون" → product: "جزمة نسائية حمراء"
+  لا تكتب أبداً عبارات نسبية مثل "نفس اللون" داخل product — حوّلها لقيمتها الفعلية.
 - إذا عندك معلومات كافية → action: search فوراً
 أجب بـ JSON فقط بدون أي نص خارجه:
 {

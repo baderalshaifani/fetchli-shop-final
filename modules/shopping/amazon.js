@@ -9,7 +9,7 @@ const fetch = require('node-fetch');
 async function searchAmazon(query, market = 'SA', wantCheaper = false) {
   try {
     const API_KEY = process.env.RAINFOREST_API_KEY;
-    if (!API_KEY) return null;
+    if (!API_KEY) { console.error('[Amazon] RAINFOREST_API_KEY غير موجود في env!'); return null; }
     if (!query || !query.trim()) return null;
 
     const domainMap = {
@@ -28,8 +28,11 @@ async function searchAmazon(query, market = 'SA', wantCheaper = false) {
       page:          '1',
     });
 
+    console.log(`[Amazon] → Rainforest: "${query}" (${amazonDomain})`);
+    const t0 = Date.now();
     const response = await fetch(`https://api.rainforestapi.com/request?${params}`);
     const data     = await response.json();
+    console.log(`[Amazon] ← رد خلال ${((Date.now() - t0) / 1000).toFixed(1)} ثانية`);
 
     if (data.error) {
       console.error('Rainforest API error:', data.error);
@@ -37,7 +40,7 @@ async function searchAmazon(query, market = 'SA', wantCheaper = false) {
     }
 
     const results = data.search_results || [];
-    if (!results.length) return null;
+    if (!results.length) { console.log('[Amazon] لا نتائج من Rainforest لـ:', query); return null; }
 
     const currencyMap = { SA: 'ر.س', AE: 'د.إ', EG: 'ج.م', US: '$', CA: 'C$' };
     const currency    = currencyMap[market] || 'ر.س';
