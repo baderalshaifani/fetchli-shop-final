@@ -199,6 +199,7 @@ async function searchAliExpress(query, wantCheaper = false, market = 'SA', produ
       app_key:      APP_KEY,
       method:       'aliexpress.affiliate.product.query',
       sign_method:  'md5',
+      access_token: ACCESS_TOKEN || '', // كان غير مرسل — موجود في sync.js الناجح
       timestamp:    aliTimestamp(),
       v:            '2.0',
       format:       'json',
