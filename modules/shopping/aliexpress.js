@@ -213,7 +213,14 @@ async function searchAliExpress(query, wantCheaper = false, market = 'SA', produ
     });
     const data = await response.json();
 
-    console.log('AliExpress raw:', JSON.stringify(data).slice(0, 200));
+    // طباعة الرد كامل + المعاملات المرسلة (نخفي السر) لتشخيص 405
+    console.log('[AliKeyword] params sent:', JSON.stringify({ ...params, sign: '***', app_key: '***' }));
+    console.log('[AliKeyword] FULL raw:', JSON.stringify(data));
+
+    // كشف رسالة الخطأ على مستوى الطلب (top-level error_response)
+    if (data.error_response) {
+      console.error('[AliKeyword] ⛔ error_response:', JSON.stringify(data.error_response));
+    }
 
     const items = data?.aliexpress_affiliate_product_query_response?.resp_result?.result?.products?.product || [];
     if (!items.length) {
