@@ -7,7 +7,15 @@ const fetch   = require('node-fetch');
 const config  = require('../../config');
 
 const { analyzeWithGoogleVision, analyzeWithClaude, buildFallbackFromVision } = require('./analyze');
-const { searchAmazon } = require('./amazon');
+const { searchAmazon: searchAmazonRainforest } = require('./amazon');
+const { searchAmazonDecodo } = require('./decodo');
+
+// مصدر أمازون الموحّد: Decodo أولاً، ثم Rainforest احتياطاً (لو رجع رصيده)
+async function searchAmazon(query, market, wantCheaper) {
+  const viaDecodo = await searchAmazonDecodo(query, market, wantCheaper);
+  if (viaDecodo?.length) return viaDecodo;
+  return await searchAmazonRainforest(query, market, wantCheaper);
+}
 const {
   smartmatchAliExpress, searchAliExpress,
   filterAliResults, buildAliQuery, normalizeProductType,
