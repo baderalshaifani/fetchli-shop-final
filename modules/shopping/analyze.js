@@ -79,17 +79,44 @@ function rgbToColorName(r, g, b) {
 }
 
 // ────────────────────────────────────
+// parseImageInput — يشيل data:URL prefix (لو موجود) ويحدد media_type الصحيح
+// يدعم: Data URL كامل (data:image/png;base64,...) أو base64 خام بدون prefix
+// ────────────────────────────────────
+function parseImageInput(imageBase64) {
+  if (!imageBase64) return { mediaType: null, data: null };
+
+  // الحالة 1: Data URL كامل — نستخرج النوع الحقيقي ونشيل الـ prefix
+  const dataUrlMatch = imageBase64.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
+  if (dataUrlMatch) {
+    let mediaType = dataUrlMatch[1].toLowerCase();
+    // image/jpg ليست MIME صحيح — Claude يتوقع image/jpeg
+    if (mediaType === 'image/jpg') mediaType = 'image/jpeg';
+    return { mediaType, data: dataUrlMatch[2] };
+  }
+
+  // الحالة 2: base64 خام بدون prefix — نكتشف النوع من أول بايتات الترميز
+  const head = imageBase64.slice(0, 16);
+  let mediaType = 'image/jpeg'; // افتراضي
+  if (head.startsWith('iVBORw0KGgo'))       mediaType = 'image/png';
+  else if (head.startsWith('/9j'))          mediaType = 'image/jpeg';
+  else if (head.startsWith('UklGR'))        mediaType = 'image/webp';
+  else if (head.startsWith('R0lGOD'))       mediaType = 'image/gif';
+
+  return { mediaType, data: imageBase64 };
+}
+
+// ────────────────────────────────────
 // Claude — تحليل عميق + توليد كلمات بحث
 // history: مصفوفة من التحليلات السابقة { productType, color, brand }
 // تُستخدم لطلبات مثل "نفس اللون" / "نفس النوع"
 // ────────────────────────────────────
-async function analyzeWithClaude(message, imageBase64, visionData, wantCheaper, history = []) {
+async function analyzeWithClaude(message, imageBase64, mediaType, visionData, wantCheaper, history = []) {
   const content = [];
 
   if (imageBase64) {
     content.push({
       type: 'image',
-      source: { type: 'base64', media_type: 'image/jpeg', data: imageBase64 },
+      source: { type: 'base64', media_type: mediaType || 'image/jpeg', data: imageBase64 },
     });
   }
 
@@ -243,4 +270,4 @@ function buildFallbackFromVision(visionData, message, wantCheaper) {
   };
 }
 
-module.exports = { analyzeWithGoogleVision, analyzeWithClaude, buildFallbackFromVision };
+module.exports = { analyzeWithGoogleVision, analyzeWithClaude, buildFallbackFromVision, parseImageInput };

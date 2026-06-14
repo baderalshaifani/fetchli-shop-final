@@ -6,7 +6,7 @@ const express = require('express');
 const fetch   = require('node-fetch');
 const config  = require('../../config');
 
-const { analyzeWithGoogleVision, analyzeWithClaude, buildFallbackFromVision } = require('./analyze');
+const { analyzeWithGoogleVision, analyzeWithClaude, buildFallbackFromVision, parseImageInput } = require('./analyze');
 const { searchAmazon: searchAmazonRainforest } = require('./amazon');
 const { searchAmazonDecodo } = require('./decodo');
 
@@ -37,17 +37,18 @@ const router = express.Router();
 // ────────────────────────────────────
 router.post('/api/analyze', async (req, res) => {
   try {
-    const { message, imageBase64, wantCheaper = false, history = [] } = req.body;
+    const { message, imageBase64: rawImage, wantCheaper = false, history = [] } = req.body;
+    const { mediaType, data: imageBase64 } = parseImageInput(rawImage);
 
     let visionData = null;
     if (imageBase64) {
       visionData = await analyzeWithGoogleVision(imageBase64);
-      console.log('Vision data:', visionData?.bestGuess, visionData?.logos);
+      console.log('Vision data:', visionData?.bestGuess, visionData?.logos, 'mediaType:', mediaType);
     }
 
     let analyzed = null;
     try {
-      analyzed = await analyzeWithClaude(message, imageBase64, visionData, wantCheaper, history);
+      analyzed = await analyzeWithClaude(message, imageBase64, mediaType, visionData, wantCheaper, history);
     } catch (claudeErr) {
       console.error('Claude failed, using Vision fallback:', claudeErr.message);
       analyzed = null;
