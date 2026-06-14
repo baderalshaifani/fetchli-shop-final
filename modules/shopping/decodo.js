@@ -24,11 +24,12 @@ const CURRENCY_SYMBOL = {
 // الصيغة: https://www.amazon.sa/dp/ASIN/?tag=PARTNER_TAG
 // ────────────────────────────────────
 function buildAffiliateUrl(asin, market) {
-  const domain     = DOMAIN_MAP[market] || 'amazon.com';
+  // نكشط من amazon.com، فالمنتج (ASIN) مضمون وجوده هناك.
+  // نبني الرابط على .com بنفس tag السوق (أو US كافتراضي).
   const partnerTag = config.AMAZON[market]?.PARTNER_TAG
                   || config.AMAZON.US?.PARTNER_TAG
                   || '';
-  const base = `https://www.${domain}/dp/${asin}/`;
+  const base = `https://www.amazon.com/dp/${asin}/`;
   return partnerTag ? `${base}?tag=${partnerTag}` : base;
 }
 
@@ -41,10 +42,11 @@ async function searchAmazonDecodo(query, market = 'SA', wantCheaper = false) {
     if (!TOKEN) { console.error('[Decodo] DECODO_TOKEN غير موجود في env!'); return null; }
     if (!query || !query.trim()) return null;
 
-    const domain     = DOMAIN_MAP[market] || 'amazon.com';
-    const searchUrl  = `https://www.${domain}/s?k=${encodeURIComponent(query.trim())}`;
+    // Decodo يفشل في كشط amazon.sa — نكشط من amazon.com دائماً،
+    // ثم نبني رابط الأفلييت على نطاق سوق المستخدم (.sa/.ae) في buildAffiliateUrl
+    const scrapeUrl = `https://www.amazon.com/s?k=${encodeURIComponent(query.trim())}`;
 
-    console.log(`[Decodo] → بحث: "${query}" (${domain})`);
+    console.log(`[Decodo] → بحث: "${query}" (amazon.com → رابط ${market})`);
     const t0 = Date.now();
 
     const response = await fetch('https://scraper-api.decodo.com/v2/scrape', {
@@ -55,9 +57,9 @@ async function searchAmazonDecodo(query, market = 'SA', wantCheaper = false) {
       },
       body: JSON.stringify({
         target:   'amazon',
-        url:      searchUrl,
-        headless: 'html',   // تفعيل JS rendering
-        parse:    true,     // JSON parsed
+        url:      scrapeUrl,
+        headless: 'html',
+        parse:    true,
       }),
       timeout: 30000,
     });
