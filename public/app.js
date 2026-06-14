@@ -3,7 +3,7 @@
 // ===================================
 
 const API        = '';
-const TRAVEL_API = 'https://fetchli-shop.onrender.com';
+const TRAVEL_API  = '';  // نفس الخدمة (التسوق+السفر في خدمة Render واحدة)
 
 let userLocation = { country:'SA', market:'SA', currency:'SAR', flag:'🇸🇦', name:'السعودية' };
 let currentLang  = 'ar';
