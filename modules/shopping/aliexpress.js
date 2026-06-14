@@ -193,7 +193,7 @@ async function searchAliExpress(query, wantCheaper = false, market = 'SA', produ
     const mkt = MARKET_MAP[market] || MARKET_MAP['SA'];
 
     const categoryId = ALI_CATEGORY_MAP[normalizeProductType(productType)] || null;
-    console.log(`[AliExpress] query="${query}" productType="${productType}" categoryId="${categoryId}"`);
+    console.log(`[AliExpress] query="${query}" productType="${productType}" categoryId="${categoryId}" (category_ids غير مُرسل - تجربة)`);
 
     const params = {
       app_key:      APP_KEY,
@@ -211,7 +211,8 @@ async function searchAliExpress(query, wantCheaper = false, market = 'SA', produ
       tracking_id:        TRACKING,
       target_currency:    mkt.currency,
       target_language:    'EN', // الكلمات المفتاحية دائماً إنجليزية (buildAliQuery) — مطابقة لـ sync.js الناجح
-      ...(categoryId ? { category_ids: categoryId } : {}),
+      ship_to_country:    mkt.ship_to, // موجود في smartmatch الناجح، كان غائباً هنا
+      // category_ids: تمت إزالته مؤقتاً — احتمال أن الـ ID قديم/غير صالح ويصفّر النتائج عند دمجه مع keywords
     };
     params.sign = signParams(params, APP_SECRET);
 
