@@ -10,8 +10,13 @@ const { analyzeWithGoogleVision, analyzeWithClaude, buildFallbackFromVision } = 
 const { searchAmazon: searchAmazonRainforest } = require('./amazon');
 const { searchAmazonDecodo } = require('./decodo');
 
-// مصدر أمازون الموحّد: Decodo أولاً، ثم Rainforest احتياطاً (لو رجع رصيده)
+// أمازون معطّل مؤقتاً (Decodo غير مستقر مع .sa + رصيد Rainforest منتهٍ)
+// لإعادة تفعيله لاحقاً: ضع AMAZON_ENABLED=true في env
+const AMAZON_ENABLED = process.env.AMAZON_ENABLED === 'true';
+
+// مصدر أمازون الموحّد: Decodo أولاً، ثم Rainforest احتياطاً
 async function searchAmazon(query, market, wantCheaper) {
+  if (!AMAZON_ENABLED) return null;
   const viaDecodo = await searchAmazonDecodo(query, market, wantCheaper);
   if (viaDecodo?.length) return viaDecodo;
   return await searchAmazonRainforest(query, market, wantCheaper);

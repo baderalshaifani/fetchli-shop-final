@@ -295,6 +295,10 @@ function filterAliResults(items, productType) {
   });
 
   console.log(`[AliFilter] type="${productType}" before:${items.length} after:${filtered.length}`);
+  if (items.length > 0 && filtered.length === 0) {
+    // تشخيص: لماذا رُفض كل شيء؟ اطبع أول عناوين
+    console.log('[AliFilter] عينة عناوين مرفوضة:', items.slice(0, 3).map(p => (p.name || '').slice(0, 50)));
+  }
   // لا نعرض نتائج غير مطابقة أبداً — الفارغ أصدق من الخطأ
   return filtered;
 }

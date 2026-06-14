@@ -640,7 +640,7 @@ async function runShopSearch(message, imageBase64, wantCheaper) {
 
     // ── الرد ──
     const confidence  = analyzed.confidence || 90;
-    const reply       = analyzed.reply || 'وجدت لك نتائج من Amazon و AliExpress';
+    const reply       = analyzed.reply || 'وجدت لك نتائج مطابقة';
     const detailLine  = analyzed.productType
       ? `\n🔍 ${analyzed.productType}${analyzed.brand ? ' • ' + analyzed.brand : ''}${analyzed.color ? ' • ' + analyzed.color : ''}`
       : '';
@@ -649,6 +649,10 @@ async function runShopSearch(message, imageBase64, wantCheaper) {
 
     if (amazon.length     > 0) addStoreSection('amazon',     amazon,     wantCheaper);
     if (aliexpress.length > 0) addStoreSection('aliexpress', aliexpress, wantCheaper);
+    // أمازون قريباً — ملاحظة بسيطة بعد نتائج AliExpress
+    if (aliexpress.length > 0 && amazon.length === 0) {
+      addMessage('ai', '🛒 نتائج Amazon قادمة قريباً — نعمل على إضافتها');
+    }
 
   } catch (err) {
     removeTyping();
