@@ -25,7 +25,6 @@ const {
   smartmatchAliExpress, searchAliExpress,
   filterAliResults, buildAliQuery, normalizeProductType,
 } = require('./aliexpress');
-const { searchSupabase } = require('./supabaseSearch');
 const { sortProducts }   = require('./helpers');
 const { syncProducts }   = require('./sync');
 const { callClaude, extractJson } = require('../../shared/claude');
@@ -104,7 +103,7 @@ router.post('/api/search/amazon', async (req, res) => {
 
 // ────────────────────────────────────
 // 2B. AliExpress — endpoint مستقل
-// ترتيب المصادر: Supabase → Smartmatch → Keyword
+// ترتيب المصادر: Keyword (مباشر) → Smartmatch (احتياط)
 // ────────────────────────────────────
 router.post('/api/search/aliexpress', async (req, res) => {
   try {
@@ -121,19 +120,14 @@ router.post('/api/search/aliexpress', async (req, res) => {
 
     console.log(`[AliExpress] type="${productType}" kw="${aliPrimary}" color="${color}"`);
 
-    let raw = await searchSupabase(primaryQuery, productType, wantCheaper);
-    let src = 'supabase';
+    let raw = await searchAliExpress(aliPrimary, wantCheaper, market, productType)
+           || await searchAliExpress(aliSecondary, wantCheaper, market, productType);
+    let src = 'keyword';
 
     if (!raw?.length) {
-      console.log('[AliExpress] Supabase فارغ — Smartmatch...');
+      console.log('[AliExpress] Keyword فارغ — Smartmatch...');
       raw = await smartmatchAliExpress([aliPrimary, aliSecondary], wantCheaper, market);
       src = 'smartmatch';
-    }
-
-    if (!raw?.length) {
-      raw = await searchAliExpress(aliPrimary, wantCheaper, market, productType)
-         || await searchAliExpress(aliSecondary, wantCheaper, market, productType);
-      src = 'keyword';
     }
 
     if (raw?.length) raw = filterAliResults(raw, productType, color);
