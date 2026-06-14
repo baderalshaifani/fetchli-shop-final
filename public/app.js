@@ -414,7 +414,7 @@ const CHIPS = {
 function renderChips(mode) {
   const row = document.getElementById('chipsRow');
   if (!row) return;
-  const chips = CHIPS[currentLang]?.[mode] || CHIPS.ar[mode];
+  const chips = CHIPS[currentLang]?.[mode] || CHIPS[currentLang]?.shop || CHIPS.ar.shop || [];
   row.innerHTML = chips.map(c=>`<button class="chip" onclick="handleSend('${c.replace(/^[^\s]+\s/,'')}')">${c}</button>`).join('');
 }
 
