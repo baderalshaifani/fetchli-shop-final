@@ -254,7 +254,7 @@ async function searchAliExpress(query, wantCheaper = false, market = 'SA', produ
 // ────────────────────────────────────
 // فلترة نتائج AliExpress حسب نوع المنتج
 // ────────────────────────────────────
-function filterAliResults(items, productType) {
+function filterAliResults(items, productType, color = null) {
   if (!productType || !items?.length) return items;
 
   // كلمات يجب أن تظهر في اسم المنتج (إنجليزي + عربي — النتائج ترجع بالعربي لأسواق الخليج)
@@ -296,9 +296,32 @@ function filterAliResults(items, productType) {
 
   console.log(`[AliFilter] type="${productType}" before:${items.length} after:${filtered.length}`);
   if (items.length > 0 && filtered.length === 0) {
-    // تشخيص: لماذا رُفض كل شيء؟ اطبع أول عناوين
     console.log('[AliFilter] عينة عناوين مرفوضة:', items.slice(0, 3).map(p => (p.name || '').slice(0, 50)));
   }
+
+  // طبقة اللون (اختيارية وناعمة): لو طُلب لون، نفضّل المنتجات المطابقة له،
+  // لكن إن لم يطابق أي منتج اللون لا نرفض الكل (نُبقي نتائج النوع)
+  if (color && filtered.length > 0) {
+    const COLOR_WORDS = {
+      red:['red','حمراء','أحمر','احمر'], blue:['blue','زرقاء','أزرق','ازرق'],
+      green:['green','خضراء','أخضر'], black:['black','سوداء','أسود','اسود'],
+      white:['white','بيضاء','أبيض','ابيض'], yellow:['yellow','صفراء','أصفر'],
+      pink:['pink','وردي','زهري'], brown:['brown','بني'], gray:['gray','grey','رمادي'],
+      gold:['gold','ذهبي'], silver:['silver','فضي'], purple:['purple','بنفسجي'],
+      orange:['orange','برتقالي'], beige:['beige','بيج'],
+    };
+    const cw = COLOR_WORDS[color] || [color];
+    const colorMatch = filtered.filter(item => {
+      const name = (item.name || '').toLowerCase();
+      return cw.some(c => name.includes(c.toLowerCase()));
+    });
+    if (colorMatch.length > 0) {
+      console.log(`[AliFilter] لون="${color}" مطابق:${colorMatch.length}/${filtered.length}`);
+      return colorMatch;
+    }
+    console.log(`[AliFilter] لون="${color}" لا مطابقة — أبقينا نتائج النوع`);
+  }
+
   // لا نعرض نتائج غير مطابقة أبداً — الفارغ أصدق من الخطأ
   return filtered;
 }
@@ -306,35 +329,70 @@ function filterAliResults(items, productType) {
 // ────────────────────────────────────
 // بناء query مناسب لـ AliExpress (≤ 3 كلمات)
 // ────────────────────────────────────
+// بناء query لـ AliExpress (≤ 3 كلمات)
+// الأولوية: النوع + اللون + وصف واحد — اللون لا يضيع أبداً
+// ────────────────────────────────────
 function buildAliQuery(query, productType) {
   const TYPE_EN = {
-    'ساعة':   'watch',
-    'حقيبة':  'bag',
-    'حذاء':   'shoes',
-    'قميص':   'shirt',
-    'فستان':  'dress',
-    'جاكيت':  'jacket',
-    'جوال':   'phone',
-    'لابتوب': 'laptop',
-    'سماعة':  'earbuds',
-    'نظارة':  'sunglasses',
-    'خاتم':   'ring',
-    'عطر':    'perfume',
+    'ساعة':'watch','حقيبة':'bag','حذاء':'shoes','قميص':'shirt','فستان':'dress',
+    'جاكيت':'jacket','جوال':'phone','لابتوب':'laptop','سماعة':'earbuds',
+    'نظارة':'sunglasses','خاتم':'ring','عطر':'perfume',
   };
 
-  const words = query.trim().split(/\s+/);
+  // قاموس ألوان (عربي + إنجليزي) → الكلمة الإنجليزية الموحّدة
+  const COLOR_MAP = {
+    'أحمر':'red','حمراء':'red','احمر':'red','red':'red',
+    'أزرق':'blue','زرقاء':'blue','ازرق':'blue','blue':'blue',
+    'أخضر':'green','خضراء':'green','اخضر':'green','green':'green',
+    'أسود':'black','سوداء':'black','اسود':'black','black':'black',
+    'أبيض':'white','بيضاء':'white','ابيض':'white','white':'white',
+    'أصفر':'yellow','صفراء':'yellow','yellow':'yellow',
+    'وردي':'pink','زهري':'pink','pink':'pink',
+    'بني':'brown','brown':'brown',
+    'رمادي':'gray','gray':'gray','grey':'gray',
+    'ذهبي':'gold','gold':'gold',
+    'فضي':'silver','silver':'silver',
+    'بنفسجي':'purple','purple':'purple',
+    'برتقالي':'orange','orange':'orange',
+    'بيج':'beige','beige':'beige',
+  };
 
-  if (productType && TYPE_EN[productType]) {
-    const typeWord = TYPE_EN[productType];
-    const hasTypeWord = words.some(w => w.toLowerCase() === typeWord);
-    if (!hasTypeWord) {
-      const descriptors = words.filter(w => !['budget','affordable','cheap','women','men','ladies','female','male'].includes(w.toLowerCase())).slice(0, 2);
-      return [typeWord, ...descriptors].join(' ');
-    }
+  // كلمات حشو نتجاهلها (تربك محرك البحث)
+  const STOP = ['budget','affordable','cheap','luxury','women','men','ladies',
+    'female','male','نسائية','نسائي','رجالية','رجالي','حريمي','للنساء','للرجال','ماركة','جديد','new'];
+
+  const rawWords = query.trim().split(/\s+/);
+
+  // ١) استخرج اللون (أول لون نجده)
+  let color = null;
+  for (const w of rawWords) {
+    const c = COLOR_MAP[w.toLowerCase()];
+    if (c) { color = c; break; }
   }
 
-  // بدون productType أو الكلمة موجودة → أول 3 كلمات
-  return words.slice(0, 3).join(' ');
+  // ٢) النوع بالإنجليزي
+  const typeWord = (productType && TYPE_EN[productType]) ? TYPE_EN[productType] : null;
+
+  // مرادفات النوع بالعربي — نتجاهلها كوصف لأن typeWord الإنجليزي يغطيها
+  const TYPE_AR_SYNONYMS = ['شنطة','شنطه','حقيبة','حقيبه','حقائب','جزمة','جزمه','حذاء','أحذية','احذية',
+    'ساعة','ساعه','ساعات','قميص','فستان','فساتين','جاكيت','جوال','هاتف','لابتوب','سماعة','سماعات',
+    'نظارة','نظارات','خاتم','خواتم','عطر','عطور'];
+
+  // ٣) وصف إضافي واحد (كلمة ليست نوعاً ولا لوناً ولا حشواً ولا مرادف نوع عربي)
+  const extra = rawWords.find(w => {
+    const lw = w.toLowerCase();
+    return lw !== typeWord && !COLOR_MAP[lw] && !STOP.includes(lw)
+        && !TYPE_AR_SYNONYMS.includes(w) && lw.length > 2 && !/^[a-z]$/.test(lw);
+  });
+
+  // ٤) ركّب: النوع + اللون + وصف (نتخطى الفارغ)
+  if (typeWord) {
+    return [typeWord, color, extra].filter(Boolean).slice(0, 3).join(' ');
+  }
+
+  // بدون نوع معروف → نظّف الحشو وخذ أول 3
+  const cleaned = rawWords.filter(w => !STOP.includes(w.toLowerCase()));
+  return (cleaned.length ? cleaned : rawWords).slice(0, 3).join(' ');
 }
 
 module.exports = {

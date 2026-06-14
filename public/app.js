@@ -622,6 +622,7 @@ async function runShopSearch(message, imageBase64, wantCheaper) {
         market:      userLocation.market || 'SA',
         wantCheaper,
         productType: analyzed.productType || null,
+        color:       analyzed.color || null,
       }),
     });
     const { amazon = [], aliexpress = [] } = await searchRes.json();

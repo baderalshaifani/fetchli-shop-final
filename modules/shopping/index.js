@@ -108,7 +108,7 @@ router.post('/api/search/amazon', async (req, res) => {
 // ────────────────────────────────────
 router.post('/api/search/aliexpress', async (req, res) => {
   try {
-    const { queries, query, market = 'SA', wantCheaper = false, productType: rawType = null } = req.body;
+    const { queries, query, market = 'SA', wantCheaper = false, productType: rawType = null, color = null } = req.body;
     const productType = normalizeProductType(rawType);
     const searchTerms = (queries || [query]).filter(q => q && q.trim());
     if (!searchTerms.length) return res.json({ products: [], mock: false });
@@ -119,14 +119,14 @@ router.post('/api/search/aliexpress', async (req, res) => {
     const aliPrimary   = buildAliQuery(primaryQuery,   productType);
     const aliSecondary = buildAliQuery(secondaryQuery, productType);
 
-    console.log(`[AliExpress] type="${productType}" kw="${aliPrimary}"`);
+    console.log(`[AliExpress] type="${productType}" kw="${aliPrimary}" color="${color}"`);
 
     let raw = await searchSupabase(primaryQuery, productType, wantCheaper);
     let src = 'supabase';
 
     if (!raw?.length) {
       console.log('[AliExpress] Supabase فارغ — Smartmatch...');
-      raw = await smartmatchAliExpress([primaryQuery, secondaryQuery], wantCheaper, market);
+      raw = await smartmatchAliExpress([aliPrimary, aliSecondary], wantCheaper, market);
       src = 'smartmatch';
     }
 
@@ -136,7 +136,7 @@ router.post('/api/search/aliexpress', async (req, res) => {
       src = 'keyword';
     }
 
-    if (raw?.length) raw = filterAliResults(raw, productType);
+    if (raw?.length) raw = filterAliResults(raw, productType, color);
 
     const products = raw?.length ? sortProducts(raw, wantCheaper).slice(0, 3) : [];
 
@@ -155,7 +155,7 @@ router.post('/api/search/aliexpress', async (req, res) => {
 // ────────────────────────────────────
 router.post('/api/search', async (req, res) => {
   try {
-    const { queries, query, market = 'SA', wantCheaper = false, productType: rawType = null } = req.body;
+    const { queries, query, market = 'SA', wantCheaper = false, productType: rawType = null, color = null } = req.body;
     const productType = normalizeProductType(rawType);
     const searchTerms = (queries || [query]).filter(q => q && q.trim());
     if (!searchTerms.length) return res.json({ amazon: [], aliexpress: [], amazonMock: false, aliMock: false });
@@ -188,7 +188,8 @@ router.post('/api/search', async (req, res) => {
     let aliSrc = 'supabase';
 
     if (!aliRaw?.length) {
-      aliRaw = await smartmatchAliExpress([primaryQuery, secondaryQuery], wantCheaper, market);
+      // نمرّر الاستعلام النظيف (نوع+لون) لا الاستعلام الطويل — Smartmatch حساس للحشو
+      aliRaw = await smartmatchAliExpress([aliPrimary, aliSecondary], wantCheaper, market);
       aliSrc = 'smartmatch';
     }
     if (!aliRaw?.length) {
@@ -196,7 +197,7 @@ router.post('/api/search', async (req, res) => {
             || await searchAliExpress(aliSecondary, wantCheaper, market, productType);
       aliSrc = 'keyword';
     }
-    if (aliRaw?.length) aliRaw = filterAliResults(aliRaw, productType);
+    if (aliRaw?.length) aliRaw = filterAliResults(aliRaw, productType, color);
 
     const aliProducts = aliRaw?.length
       ? sortProducts(aliRaw, wantCheaper).slice(0, 3)
