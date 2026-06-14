@@ -194,16 +194,14 @@ async function searchAliExpress(query, wantCheaper = false, market = 'SA', produ
       timestamp:    String(Date.now()),
       v:            '2.0',
       format:       'json',
-      session:      ACCESS_TOKEN || '',
       keywords:     query,
       sort:         wantCheaper ? 'SALE_PRICE_ASC' : 'LAST_VOLUME_DESC',
       page_no:      '1',
-      page_size:    '6',  // نجلب 6 عشان بعد الفلترة يتبقى 3
+      page_size:    '10',
       fields:       'product_id,product_title,target_sale_price,target_sale_price_currency,product_main_image_url,product_detail_url,evaluate_rate,lastest_volume',
       tracking_id:        TRACKING,
       target_currency:    mkt.currency,
       target_language:    mkt.language,
-      ship_to_country:    mkt.ship_to,
       ...(categoryId ? { category_ids: categoryId } : {}),
     };
     params.sign = signParams(params, APP_SECRET);
@@ -223,7 +221,7 @@ async function searchAliExpress(query, wantCheaper = false, market = 'SA', produ
       return null;
     }
 
-    return items.slice(0, 3).map((item, i) => {
+    return items.slice(0, 6).map((item, i) => {
       const price    = parseFloat(item.target_sale_price) || 0;
       const currency = item.target_sale_price_currency || 'USD';
       const rating   = item.evaluate_rate

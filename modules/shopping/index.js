@@ -165,17 +165,11 @@ router.post('/api/search', async (req, res) => {
     const aliPrimary     = buildAliQuery(primaryQuery, productType);
     const aliSecondary   = buildAliQuery(secondaryQuery, productType);
 
-    // Amazon و Supabase بالتوازي (مهلة Amazon: 25 ثانية — Rainforest بطيء أحياناً)
-    // محاولة ثالثة باستعلام قصير: الاستعلامات الطويلة جداً (7+ كلمات) كثيراً ما ترجع صفراً في amazon.sa
-    const shortQuery = buildAliQuery(primaryQuery, productType);
-    const [amazonRaw, supabaseRaw] = await Promise.all([
-      Promise.race([
-        searchAmazon(primaryQuery, market, wantCheaper)
-          .then(r => r || searchAmazon(secondaryQuery, market, wantCheaper))
-          .then(r => r || (shortQuery !== primaryQuery ? searchAmazon(shortQuery, market, wantCheaper) : null)),
-        new Promise(resolve => setTimeout(() => resolve(null), 25000)),
-      ]),
-      searchSupabase(primaryQuery, productType, wantCheaper),
+    // Amazon معطّل مؤقتاً، فهذا الاستدعاء يرجع null سريعاً (AMAZON_ENABLED=false)
+    const amazonRaw = await Promise.race([
+      searchAmazon(primaryQuery, market, wantCheaper)
+        .then(r => r || searchAmazon(secondaryQuery, market, wantCheaper)),
+      new Promise(resolve => setTimeout(() => resolve(null), 25000)),
     ]);
 
     // Amazon — بدون نتائج وهمية
@@ -183,19 +177,15 @@ router.post('/api/search', async (req, res) => {
       ? sortProducts(amazonRaw, wantCheaper).slice(0, 3)
       : [];
 
-    // AliExpress — Supabase أولاً ثم Smartmatch ثم Keyword
-    let aliRaw = supabaseRaw;
-    let aliSrc = 'supabase';
+    // AliExpress — بحث حي مباشر (لا نعتمد على Supabase الناقص)
+    // الترتيب: keyword+category (الأدق) ← smartmatch (احتياط)
+    let aliRaw = await searchAliExpress(aliPrimary, wantCheaper, market, productType)
+              || await searchAliExpress(aliSecondary, wantCheaper, market, productType);
+    let aliSrc = 'keyword';
 
     if (!aliRaw?.length) {
-      // نمرّر الاستعلام النظيف (نوع+لون) لا الاستعلام الطويل — Smartmatch حساس للحشو
       aliRaw = await smartmatchAliExpress([aliPrimary, aliSecondary], wantCheaper, market);
       aliSrc = 'smartmatch';
-    }
-    if (!aliRaw?.length) {
-      aliRaw = await searchAliExpress(aliPrimary, wantCheaper, market, productType)
-            || await searchAliExpress(aliSecondary, wantCheaper, market, productType);
-      aliSrc = 'keyword';
     }
     if (aliRaw?.length) aliRaw = filterAliResults(aliRaw, productType, color);
 
