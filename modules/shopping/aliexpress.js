@@ -74,6 +74,14 @@ function signParams(params, secret) {
 }
 
 // ────────────────────────────────────
+// timestamp بصيغة AliExpress الصحيحة: "yyyy-MM-dd HH:mm:ss"
+// (نفس صيغة sync.js المُثبتة — وليس Date.now())
+// ────────────────────────────────────
+function aliTimestamp() {
+  return new Date().toISOString().replace('T', ' ').slice(0, 19);
+}
+
+// ────────────────────────────────────
 // smartmatch — يطابق بعناوين إنجليزية من Claude
 // ────────────────────────────────────
 async function smartmatchAliExpress(englishTitles, wantCheaper = false, market = 'SA') {
@@ -95,7 +103,7 @@ async function smartmatchAliExpress(englishTitles, wantCheaper = false, market =
           app_key:          APP_KEY,
           method:           'aliexpress.affiliate.product.smartmatch',
           sign_method:      'md5',
-          timestamp:        String(Date.now() + idx * 10),
+          timestamp:        aliTimestamp(),
           v:                '2.0',
           format:           'json',
           session:          ACCESS_TOKEN || '',
@@ -103,7 +111,7 @@ async function smartmatchAliExpress(englishTitles, wantCheaper = false, market =
           device_id:        'fetchli-web', // إجباري حسب رسالة خطأ الـ API (MissingParameter)
           tracking_id:      TRACKING,
           target_currency:  mkt.currency,
-          target_language:  mkt.language,
+          target_language:  'EN', // الكلمات/العناوين الممرّرة دائماً إنجليزية
           ship_to_country:  mkt.ship_to,
           page_no:          '1',
           page_size:        '3',
@@ -191,7 +199,7 @@ async function searchAliExpress(query, wantCheaper = false, market = 'SA', produ
       app_key:      APP_KEY,
       method:       'aliexpress.affiliate.product.query',
       sign_method:  'md5',
-      timestamp:    String(Date.now()),
+      timestamp:    aliTimestamp(),
       v:            '2.0',
       format:       'json',
       keywords:     query,
@@ -201,7 +209,7 @@ async function searchAliExpress(query, wantCheaper = false, market = 'SA', produ
       fields:       'product_id,product_title,target_sale_price,target_sale_price_currency,product_main_image_url,product_detail_url,evaluate_rate,lastest_volume',
       tracking_id:        TRACKING,
       target_currency:    mkt.currency,
-      target_language:    mkt.language,
+      target_language:    'EN', // الكلمات المفتاحية دائماً إنجليزية (buildAliQuery) — مطابقة لـ sync.js الناجح
       ...(categoryId ? { category_ids: categoryId } : {}),
     };
     params.sign = signParams(params, APP_SECRET);
