@@ -5,7 +5,7 @@
 const express = require('express');
 const fetch   = require('node-fetch');
 const config  = require('../../config');
-
+const path = require('path');
 const { analyzeWithGoogleVision, analyzeWithClaude, buildFallbackFromVision, parseImageInput } = require('./analyze');
 const { searchAmazon: searchAmazonRainforest } = require('./amazon');
 const { searchAmazonDecodo } = require('./decodo');
