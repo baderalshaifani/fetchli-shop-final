@@ -1,13 +1,16 @@
 // ===================================
 // modules/travel/hotels.js
-// رابط فنادق عبر HOTEL_DEEPLINK_TEMPLATE (Trip.com افتراضياً)
-// ⚠️ ملاحظة: بعض المزودات تحتاج city ID لا اسم المدينة —
-// إذا لم تظهر نتائج دقيقة من القالب الحالي، يلزم خريطة city→ID لاحقاً
+// رابط فنادق Trip.com — مولّد بحث (cityName + تواريخ) + تتبع Trip.com Affiliate
+// Allianceid/SID خاصة بحساب Fetchli على trip.com/partners
+// ⚠️ يفتح صفحة بحث Trip.com مع المدينة/التواريخ مُعبّأة في مربع البحث —
+//    المستخدم يضغط "بحث" مرة واحدة لإظهار النتائج (city= الرقمي يفعّلها
+//    تلقائياً لكن نحتاج قاعدة city IDs لذلك — تحسين لاحق)
 // ===================================
 
-const config = require('../../config');
-
 const HOTEL_IMAGE = 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&h=300&fit=crop';
+
+const TRIP_ALLIANCE_ID = '8462490';
+const TRIP_SID         = '316319123';
 
 // تاريخ افتراضي: تشيك إن بعد 30 يوم لمدة 3 ليالٍ
 function defaultDates() {
@@ -20,12 +23,18 @@ function defaultDates() {
 }
 
 function buildHotelUrl(destination, checkIn, checkOut, adults) {
-  const template = config.TRAVEL.HOTEL_DEEPLINK_TEMPLATE;
-  return template
-    .replace('{destination}', encodeURIComponent(destination))
-    .replace('{checkIn}',  checkIn)
-    .replace('{checkOut}', checkOut)
-    .replace('{adults}',   String(adults || 2));
+  const params = new URLSearchParams({
+    cityName:   destination,
+    searchWord: destination,
+    searchType: 'CT',
+    checkIn,
+    checkOut,
+    adult:      String(adults || 2),
+    children:   '0',
+    Allianceid: TRIP_ALLIANCE_ID,
+    SID:        TRIP_SID,
+  });
+  return `https://www.trip.com/hotels/list?${params}`;
 }
 
 /**
