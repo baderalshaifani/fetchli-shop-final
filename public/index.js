@@ -394,7 +394,7 @@ router.get('/admin', (req, res) => {
   
   // قراءة التوكن المتوقع من المتغيرات البيئية في ريندر
   // تأكد أن الاسم مطابق تماماً لما سميته في ريندر (مثلاً: ADMIN_TOKEN)
-  const expectedToken = process.env.ADMIN_PASSWORD;
+  const expectedToken = process.env.ADMIN_TOKEN;
 
   // التحقق من وجود التوكن ومطابقته
   if (expectedToken && token === expectedToken) {
