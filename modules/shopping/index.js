@@ -385,5 +385,14 @@ router.post('/api/admin/content', adminAuth, async (req, res) => {
     res.status(500).json({ ok: false, error: err.message });
   }
 });
+router.get('/admin', (req, res) => {
+  const token = req.query.token;
+  const expectedToken = process.env.ADMIN_TOKEN;
 
+  if (expectedToken && token === expectedToken) {
+    res.sendFile(path.join(__dirname, '../../admin.html'));
+  } else {
+    res.status(401).send('<h1>401 Unauthorized</h1>');
+  }
+});
 module.exports = router;
