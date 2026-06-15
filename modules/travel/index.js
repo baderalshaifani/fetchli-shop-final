@@ -26,7 +26,8 @@ router.post('/api/travel/search', async (req, res) => {
       cards.push(...flightCards);
     }
 
-    if (type === 'hotel' || type === 'mixed') {
+    // الفنادق تظهر مع الطيران أيضاً (نفس الوجهة) — مفيدة تجارياً وتجربةً
+    if (type === 'hotel' || type === 'mixed' || type === 'flight') {
       const hotelCards = searchHotels(analysis, market);
       cards.push(...hotelCards);
     }
