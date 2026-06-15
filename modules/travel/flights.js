@@ -49,32 +49,53 @@ function buildAviasalesLink(originCode, destCode, departDate, adults) {
 }
 
 // أرخص سعر مرصود عبر Travelpayouts (تقريبي — ليس سعراً لحظياً مضموناً)
+// المحاولة ١: /v2/prices/latest (كاش أسعار حديثة)
+// المحاولة ٢: /v1/prices/cheap (كاش أوسع تاريخياً، مُصنّف حسب الوجهة)
 async function fetchCheapestPrice(originCode, destCode, currency) {
-  try {
-    const token = config.TRAVEL.TOKEN;
-    if (!token) return null;
-
-    const params = new URLSearchParams({
-      origin:      originCode,
-      destination: destCode,
-      currency:    currencyForApi(currency),
-      token,
-      limit:       '1',
-      sorting:     'price',
-      one_way:     'false',
-    });
-
-    const res  = await fetch(`https://api.travelpayouts.com/v2/prices/latest?${params}`);
-    const data = await res.json();
-
-    const item = data?.data?.[0];
-    if (!item?.price) return null;
-
-    return { price: item.price, currency: currencyForApi(currency).toUpperCase() };
-  } catch (err) {
-    console.error('[Travel/Flights] price error:', err.message);
+  const token = config.TRAVEL.TOKEN;
+  if (!token) {
+    console.log('[Travel/Flights] لا يوجد TRAVEL.TOKEN — تخطّي جلب السعر');
     return null;
   }
+
+  const curr = currencyForApi(currency);
+
+  // ── المحاولة ١: /v2/prices/latest ──
+  try {
+    const params = new URLSearchParams({
+      origin: originCode, destination: destCode,
+      currency: curr, token, limit: '1', sorting: 'price', one_way: 'false',
+    });
+    const res  = await fetch(`https://api.travelpayouts.com/v2/prices/latest?${params}`);
+    const data = await res.json();
+    console.log(`[Travel/Flights] v2/latest ${originCode}->${destCode} status=${res.status}:`, JSON.stringify(data).slice(0, 300));
+
+    const item = data?.data?.[0];
+    if (item?.price) return { price: item.price, currency: curr.toUpperCase() };
+  } catch (err) {
+    console.error('[Travel/Flights] v2/latest error:', err.message);
+  }
+
+  // ── المحاولة ٢: /v1/prices/cheap ──
+  try {
+    const params = new URLSearchParams({
+      origin: originCode, destination: destCode, currency: curr, token,
+    });
+    const res  = await fetch(`https://api.travelpayouts.com/v1/prices/cheap?${params}`);
+    const data = await res.json();
+    console.log(`[Travel/Flights] v1/cheap ${originCode}->${destCode} status=${res.status}:`, JSON.stringify(data).slice(0, 300));
+
+    const destData = data?.data?.[originCode]?.[destCode] || data?.data?.[destCode];
+    if (destData) {
+      const flights = Object.values(destData);
+      const cheapest = flights.sort((a, b) => (a.price || 9e9) - (b.price || 9e9))[0];
+      if (cheapest?.price) return { price: cheapest.price, currency: curr.toUpperCase() };
+    }
+  } catch (err) {
+    console.error('[Travel/Flights] v1/cheap error:', err.message);
+  }
+
+  return null;
 }
 
 /**
