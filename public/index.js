@@ -384,4 +384,26 @@ router.post('/api/admin/content', adminAuth, async (req, res) => {
   }
 });
 
+// ────────────────────────────────────
+// 9. عرض صفحة لوحة التحكم (admin.html) للمتصفح باستخدام متغيرات ريندر
+// ────────────────────────────────────
+const path = require('path');
+
+router.get('/admin', (req, res) => {
+  const token = req.query.token;
+  
+  // قراءة التوكن المتوقع من المتغيرات البيئية في ريندر
+  // تأكد أن الاسم مطابق تماماً لما سميته في ريندر (مثلاً: ADMIN_TOKEN)
+  const expectedToken = process.env.ADMIN_PASSWORD;
+
+  // التحقق من وجود التوكن ومطابقته
+  if (expectedToken && token === expectedToken) {
+    // إرسال ملف الـ HTML (يرجع خطوتين للخلف للوصول للمجلد الرئيسي)
+    res.sendFile(path.join(__dirname, '../../admin.html'));
+  } else {
+    // رسالة حماية مبهمة في حال المحاولة الخاطئة لزيادة الأمان
+    res.status(401).send('<h1>401 Unauthorized</h1>');
+  }
+});
+
 module.exports = router;
